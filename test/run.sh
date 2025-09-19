@@ -19,7 +19,10 @@ fi
 
 echo "[test] Generating test certs (if needed)"
 if [ -f ./certs/gen.sh ]; then
+  # For mock HTTPS server (mounted from test/certs)
   bash ./certs/gen.sh ./certs || true
+  # For HAProxy TLS inbound (mounted from project root certs)
+  bash ./certs/gen.sh ../certs || true
 else
   echo "[test] cert generator not found; skipping"
 fi
