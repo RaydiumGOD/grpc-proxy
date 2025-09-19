@@ -56,23 +56,34 @@ Diagram
 
 ```mermaid
 flowchart LR
-  A[Clients\nApps] -->|HTTP JSON-RPC :8899| B(fe_rpc_http)
-  A -->|gRPC :10000| C(fe_rpc_grpc)
+  client[Clients<br/>Apps]
+  fe_http[fe_rpc_http]
+  fe_grpc[fe_rpc_grpc]
+  be_http[be_rpc_http]
+  be_grpc[be_rpc_grpc]
+  stats[Stats UI :8404]
+  admin[Admin Socket :9999/UNIX]
+
+  client -->|HTTP JSON-RPC :8899| fe_http
+  client -->|gRPC :10000| fe_grpc
+
   subgraph HAProxy
-    B --> D[be_rpc_http]
-    C --> E[be_rpc_grpc]
-    F[Stats UI :8404]
-    G[Admin Socket :9999/UNIX]
+    fe_http --> be_http
+    fe_grpc --> be_grpc
+    stats
+    admin
   end
+
   subgraph Upstreams
-    D --> U1[RPC Node #1]
-    D --> U2[RPC Node #2]
-    E --> U1
-    E --> U2
+    be_http --> u1[RPC Node #1]
+    be_http --> u2[RPC Node #2]
+    be_grpc --> u1
+    be_grpc --> u2
   end
+
   %% Optional TLS listeners
-  A -->|HTTPS :8443 (optional)| B
-  A -->|gRPC-TLS :10001 (optional)| C
+  client -.->|HTTPS :8443 (optional)| fe_http
+  client -.->|gRPC-TLS :10001 (optional)| fe_grpc
 ```
 
 Health checks
