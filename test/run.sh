@@ -8,8 +8,8 @@ SCENARIOS=(
 )
 
 echo "[test] Generating test certs (if needed)"
-if [ -x ./certs/gen.sh ]; then
-  ./certs/gen.sh ./certs || true
+if [ -f ./certs/gen.sh ]; then
+  bash ./certs/gen.sh ./certs || true
 else
   echo "[test] cert generator not found; skipping"
 fi
@@ -29,18 +29,19 @@ for s in "${SCENARIOS[@]}"; do
   echo "[test] Waiting for services to be ready"
   SECONDS=0
   # Wait up to 20s for haproxy port
-  until nc -z localhost "${LISTEN_HTTP_PORT:-18999}" || [ $SECONDS -gt 20 ]; do sleep 1; done
+  until nc -z 127.0.0.1 "${LISTEN_HTTP_PORT:-18999}" || [ $SECONDS -gt 20 ]; do sleep 1; done
   # Wait up to 20s for mocks
-  until nc -z localhost 18899 || [ $SECONDS -gt 20 ]; do sleep 1; done
-  until nc -z localhost 28899 || [ $SECONDS -gt 20 ]; do sleep 1; done
+  until nc -z 127.0.0.1 18899 || [ $SECONDS -gt 20 ]; do sleep 1; done
+  until nc -z 127.0.0.1 28899 || [ $SECONDS -gt 20 ]; do sleep 1; done
 
   echo "[test] Health check via JSON-RPC getHealth"
-  curl -sS -X POST "http://localhost:${LISTEN_HTTP_PORT:-18999}" \
+  curl -sS --http1.1 --retry 5 --retry-connrefused --retry-delay 1 --max-time 10 \
+    -X POST "http://127.0.0.1:${LISTEN_HTTP_PORT:-18999}" \
     -H 'Content-Type: application/json' \
     -d '{"jsonrpc":"2.0","id":1,"method":"getHealth"}' | tee /dev/stderr | grep -q '"result":"ok"'
 
   echo "[test] Admin socket 'show servers state' (first 5 lines)"
-  echo "show servers state" | nc -w 1 localhost "${ADMIN_SOCKET_PORT:-19999}" | head -n 5 || true
+  echo "show servers state" | nc -w 1 127.0.0.1 "${ADMIN_SOCKET_PORT:-19999}" | head -n 5 || true
 
   echo "[test] Tearing down scenario: $s"
   COMPOSE_PROJECT_NAME=haproxy-test docker compose -f docker-compose.test.yml down -v
