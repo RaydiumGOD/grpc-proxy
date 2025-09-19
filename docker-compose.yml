@@ -8,8 +8,8 @@ services:
     restart: unless-stopped
     environment:
       # Comma-separated list of upstreams (host:port)
-      - RPC_HTTP_UPSTREAMS=${RPC_HTTP_UPSTREAMS:-chi1.cracknode.com:8899}
-      - RPC_GRPC_UPSTREAMS=${RPC_GRPC_UPSTREAMS:-chi1.cracknode.com:10000}
+      - RPC_HTTP_UPSTREAMS=${RPC_HTTP_UPSTREAMS:-solana-rpc.publicnode.com}
+      - RPC_GRPC_UPSTREAMS=${RPC_GRPC_UPSTREAMS:-solana-yellowstone-grpc.publicnode.com:443}
       - LISTEN_HTTP_PORT=${LISTEN_HTTP_PORT:-8899}
       - LISTEN_GRPC_PORT=${LISTEN_GRPC_PORT:-10000}
       - LISTEN_HTTP_TLS_ENABLE=${LISTEN_HTTP_TLS_ENABLE:-false}

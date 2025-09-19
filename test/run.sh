@@ -35,6 +35,10 @@ for s in "${SCENARIOS[@]}"; do
   until nc -z 127.0.0.1 28899 || [ $SECONDS -gt 20 ]; do sleep 1; done
 
   echo "[test] Health check via JSON-RPC getHealth"
+  echo "[test] DEBUG: Checking HAProxy logs before curl"
+  docker logs haproxy-test-proxy | tail -n 10 || true
+  echo "[test] DEBUG: Checking server states"
+  echo "show servers state" | nc -w 1 127.0.0.1 "${ADMIN_SOCKET_PORT:-19999}" | head -n 5 || true
   curl -sS --http1.1 --retry 5 --retry-connrefused --retry-delay 1 --max-time 10 \
     -X POST "http://127.0.0.1:${LISTEN_HTTP_PORT:-18999}" \
     -H 'Content-Type: application/json' \
