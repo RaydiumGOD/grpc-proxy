@@ -35,9 +35,6 @@ for s in "${SCENARIOS[@]}"; do
   until nc -z 127.0.0.1 28899 || [ $SECONDS -gt 20 ]; do sleep 1; done
 
   echo "[test] Health check via JSON-RPC getHealth"
-  echo "[test] DEBUG: Checking HAProxy config and logs before curl"
-  docker exec haproxy-test-proxy cat /usr/local/etc/haproxy/haproxy.cfg | grep -A5 -B5 "server srv" || true
-  docker logs haproxy-test-proxy | tail -n 20 || true
   curl -sS --http1.1 --retry 5 --retry-connrefused --retry-delay 1 --max-time 10 \
     -X POST "http://127.0.0.1:${LISTEN_HTTP_PORT:-18999}" \
     -H 'Content-Type: application/json' \

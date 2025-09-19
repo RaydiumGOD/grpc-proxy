@@ -31,6 +31,10 @@ services:
       service: haproxy
       file: ../docker-compose.yml
     container_name: haproxy-test-proxy
+    depends_on:
+      - mock1
+      - mock2
+      - mock_https
     environment:
       - RPC_HTTP_UPSTREAMS=${RPC_HTTP_UPSTREAMS:-mock1:18899,mock2:28899}
       - RPC_GRPC_UPSTREAMS=${RPC_GRPC_UPSTREAMS:-mock1:10000}
