@@ -1,0 +1,44 @@
+services:
+  mock1:
+    build: ./mocks/http-jsonrpc
+    environment:
+      - PORT=18899
+      - NAME=mock1
+      - HEALTH=ok
+    ports:
+      - "18899:18899"
+  mock2:
+    build: ./mocks/http-jsonrpc
+    environment:
+      - PORT=28899
+      - NAME=mock2
+      - HEALTH=ok
+    ports:
+      - "28899:28899"
+  mock_https:
+    build: ./mocks/https-jsonrpc
+    environment:
+      - PORT=38899
+      - NAME=mock-https
+      - HEALTH=ok
+      - CERT_DIR=/etc/certs
+    volumes:
+      - ../certs/../../certs:/etc/certs:ro
+    ports:
+      - "38899:38899"
+  haproxy:
+    extends:
+      service: haproxy
+      file: ../docker-compose.yml
+    environment:
+      - RPC_HTTP_UPSTREAMS=host.docker.internal:18899,host.docker.internal:28899
+      - RPC_HTTP_ENABLE_HTTP_MODE=true
+      - RPC_HTTP_HEALTH_HTTP=true
+      - RPC_HTTP_HEALTH_HOST=localhost
+      - LISTEN_HTTP_PORT=18999
+      - ADMIN_SOCKET_TCP=true
+      - ADMIN_SOCKET_PORT=19999
+    ports:
+      - "18999:18999"
+      - "19999:19999"
+

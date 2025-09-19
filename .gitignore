@@ -1,0 +1,19 @@
+# Env and local overrides
+.env
+.env.*
+!.env.example
+!/test/scenarios/*.env
+
+# Certificates and keys
+certs/
+!/certs/.keep
+
+# Node / Python caches (for mocks)
+node_modules/
+**/__pycache__/
+
+# Editor/OS
+.DS_Store
+.idea/
+.vscode/
+
