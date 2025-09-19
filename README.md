@@ -1,4 +1,4 @@
-HAProxy RPC/GRPC Failover Proxy (Dockerized)
+# HAProxy RPC/GRPC Failover Proxy (Dockerized)
 
 [![CI](https://github.com/Zaydo123/GRPC-proxy/actions/workflows/ci.yml/badge.svg)](https://github.com/Zaydo123/GRPC-proxy/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![HAProxy 3.2](https://img.shields.io/badge/HAProxy-3.2-green.svg)](https://hub.docker.com/_/haproxy)
 
