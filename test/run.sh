@@ -43,20 +43,32 @@ for s in "${SCENARIOS[@]}"; do
   . "$s"
   set +a
 
+  # Compute listen port and scheme based on inbound TLS flags
+  SCHEME="http"
+  PORT="${LISTEN_HTTP_PORT:-18999}"
+  if [ "${LISTEN_HTTP_TLS_ENABLE:-false}" = "true" ]; then
+    SCHEME="https"
+    PORT="${LISTEN_HTTP_TLS_PORT:-18443}"
+  fi
+
   # Only restart HAProxy (much faster than full stack restart)
   echo "[test] Reconfiguring HAProxy"
   COMPOSE_PROJECT_NAME=haproxy-test docker compose -f docker-compose.test.yml up -d haproxy
 
   # Wait for HAProxy only (shorter timeout since mocks are ready)
   SECONDS=0
-  until nc -z 127.0.0.1 "${LISTEN_HTTP_PORT:-18999}" || [ $SECONDS -gt 8 ]; do sleep 0.2; done
+  until nc -z 127.0.0.1 "$PORT" || [ $SECONDS -gt 8 ]; do sleep 0.2; done
   
   # Give HAProxy a moment to complete health checks
   sleep 1
 
   echo "[test] Health check via JSON-RPC getHealth"
-  curl -sS --http1.1 --retry 3 --retry-connrefused --retry-delay 1 --max-time 5 \
-    -X POST "http://127.0.0.1:${LISTEN_HTTP_PORT:-18999}" \
+  CURL_EXTRA=""
+  if [ "$SCHEME" = "https" ]; then
+    CURL_EXTRA="--insecure"
+  fi
+  curl -sS $CURL_EXTRA --http1.1 --retry 3 --retry-connrefused --retry-delay 1 --max-time 5 \
+    -X POST "$SCHEME://127.0.0.1:$PORT" \
     -H 'Content-Type: application/json' \
     -d '{"jsonrpc":"2.0","id":1,"method":"getHealth"}' | tee /dev/stderr | grep -q '"result":"ok"'
 
@@ -65,7 +77,9 @@ for s in "${SCENARIOS[@]}"; do
 
   # Clean env vars for next scenario
   unset RPC_HTTP_UPSTREAMS RPC_HTTP_ENABLE_HTTP_MODE RPC_HTTP_HEALTH_HTTP RPC_HTTP_HEALTH_HOST LISTEN_HTTP_PORT ADMIN_SOCKET_TCP ADMIN_SOCKET_PORT || true
-  unset RPC_HTTP_UPSTREAMS_TLS RPC_HTTP_UPSTREAMS_VERIFY || true
+  unset RPC_HTTP_UPSTREAMS_TLS RPC_HTTP_UPSTREAMS_VERIFY LISTEN_HTTP_TLS_ENABLE LISTEN_HTTP_TLS_PORT || true
+  unset LISTEN_GRPC_TLS_ENABLE LISTEN_GRPC_TLS_PORT TLS_CERT_FILE || true
+
 done
 
 echo "[test] Cleaning up all services"
