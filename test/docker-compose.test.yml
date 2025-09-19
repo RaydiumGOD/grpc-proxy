@@ -33,6 +33,7 @@ services:
     container_name: haproxy-test-proxy
     environment:
       - RPC_HTTP_UPSTREAMS=${RPC_HTTP_UPSTREAMS:-mock1:18899,mock2:28899}
+      - RPC_GRPC_UPSTREAMS=${RPC_GRPC_UPSTREAMS:-mock1:10000}
       - RPC_HTTP_ENABLE_HTTP_MODE=${RPC_HTTP_ENABLE_HTTP_MODE:-true}
       - RPC_HTTP_HEALTH_HTTP=${RPC_HTTP_HEALTH_HTTP:-true}
       - RPC_HTTP_HEALTH_HOST=${RPC_HTTP_HEALTH_HOST:-localhost}
