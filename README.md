@@ -82,8 +82,8 @@ flowchart LR
   end
 
   %% Optional TLS listeners
-  client -.->|HTTPS :8443 (optional)| fe_http
-  client -.->|gRPC-TLS :10001 (optional)| fe_grpc
+  client -.-> fe_http
+  client -.-> fe_grpc
 ```
 
 Health checks

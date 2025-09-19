@@ -8,29 +8,45 @@ SCENARIOS=(
 )
 
 echo "[test] Generating test certs (if needed)"
-./certs/gen.sh || true
+if [ -x ./certs/gen.sh ]; then
+  ./certs/gen.sh ./certs || true
+else
+  echo "[test] cert generator not found; skipping"
+fi
 
 echo "[test] Building mocks and haproxy"
 docker compose -f docker-compose.test.yml build
 
 for s in "${SCENARIOS[@]}"; do
   echo "[test] Running scenario: $s"
-  export $(grep -v '^#' "$s" | xargs -d '\n' -0 2>/dev/null || true)
-  # Bring up mocks + haproxy (test overlay extends base haproxy service)
+  set -a
+  # shellcheck disable=SC1090
+  . "$s"
+  set +a
   # Use a unique project name to avoid clashing with dev container names
   COMPOSE_PROJECT_NAME=haproxy-test docker compose -f docker-compose.test.yml up -d --build
-  sleep 2
-  # Basic checks
+
+  echo "[test] Waiting for services to be ready"
+  SECONDS=0
+  # Wait up to 20s for haproxy port
+  until nc -z localhost "${LISTEN_HTTP_PORT:-18999}" || [ $SECONDS -gt 20 ]; do sleep 1; done
+  # Wait up to 20s for mocks
+  until nc -z localhost 18899 || [ $SECONDS -gt 20 ]; do sleep 1; done
+  until nc -z localhost 28899 || [ $SECONDS -gt 20 ]; do sleep 1; done
+
   echo "[test] Health check via JSON-RPC getHealth"
-  curl -sS -X POST http://localhost:${LISTEN_HTTP_PORT:-18999} \
+  curl -sS -X POST "http://localhost:${LISTEN_HTTP_PORT:-18999}" \
     -H 'Content-Type: application/json' \
     -d '{"jsonrpc":"2.0","id":1,"method":"getHealth"}' | tee /dev/stderr | grep -q '"result":"ok"'
 
   echo "[test] Admin socket 'show servers state' (first 5 lines)"
-  echo "show servers state" | nc -w 1 localhost ${ADMIN_SOCKET_PORT:-19999} | head -n 5 || true
+  echo "show servers state" | nc -w 1 localhost "${ADMIN_SOCKET_PORT:-19999}" | head -n 5 || true
 
   echo "[test] Tearing down scenario: $s"
   COMPOSE_PROJECT_NAME=haproxy-test docker compose -f docker-compose.test.yml down -v
+  unset RPC_HTTP_UPSTREAMS RPC_HTTP_ENABLE_HTTP_MODE RPC_HTTP_HEALTH_HTTP RPC_HTTP_HEALTH_HOST LISTEN_HTTP_PORT ADMIN_SOCKET_TCP ADMIN_SOCKET_PORT || true
+  unset RPC_HTTP_UPSTREAMS_TLS RPC_HTTP_UPSTREAMS_VERIFY || true
+
 done
 
 echo "[test] All scenarios passed."

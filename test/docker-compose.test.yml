@@ -23,21 +23,24 @@ services:
       - HEALTH=ok
       - CERT_DIR=/etc/certs
     volumes:
-      - ../certs/../../certs:/etc/certs:ro
+      - ../certs:/etc/certs:ro
     ports:
       - "38899:38899"
   haproxy:
     extends:
       service: haproxy
       file: ../docker-compose.yml
+    container_name: haproxy-test-proxy
     environment:
-      - RPC_HTTP_UPSTREAMS=host.docker.internal:18899,host.docker.internal:28899
-      - RPC_HTTP_ENABLE_HTTP_MODE=true
-      - RPC_HTTP_HEALTH_HTTP=true
-      - RPC_HTTP_HEALTH_HOST=localhost
-      - LISTEN_HTTP_PORT=18999
-      - ADMIN_SOCKET_TCP=true
-      - ADMIN_SOCKET_PORT=19999
+      - RPC_HTTP_UPSTREAMS=${RPC_HTTP_UPSTREAMS:-mock1:18899,mock2:28899}
+      - RPC_HTTP_ENABLE_HTTP_MODE=${RPC_HTTP_ENABLE_HTTP_MODE:-true}
+      - RPC_HTTP_HEALTH_HTTP=${RPC_HTTP_HEALTH_HTTP:-true}
+      - RPC_HTTP_HEALTH_HOST=${RPC_HTTP_HEALTH_HOST:-localhost}
+      - LISTEN_HTTP_PORT=${LISTEN_HTTP_PORT:-18999}
+      - ADMIN_SOCKET_TCP=${ADMIN_SOCKET_TCP:-true}
+      - ADMIN_SOCKET_PORT=${ADMIN_SOCKET_PORT:-19999}
+      - RPC_HTTP_UPSTREAMS_TLS=${RPC_HTTP_UPSTREAMS_TLS:-false}
+      - RPC_HTTP_UPSTREAMS_VERIFY=${RPC_HTTP_UPSTREAMS_VERIFY:-none}
     ports:
       - "18999:18999"
       - "19999:19999"
