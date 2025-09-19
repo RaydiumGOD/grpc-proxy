@@ -5,8 +5,19 @@
 !/test/scenarios/*.env
 
 # Certificates and keys
-certs/
+certs/*.pem
+certs/*.key
+certs/*.crt
+certs/*.csr
+certs/*.srl
+test/certs/*.pem
+test/certs/*.key
+test/certs/*.crt
+test/certs/*.csr
+test/certs/*.srl
 !/certs/.keep
+!/test/certs/.keep
+!/test/certs/gen.sh
 
 # Node / Python caches (for mocks)
 node_modules/
