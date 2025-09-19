@@ -180,10 +180,35 @@ CI and local test suite
 
 - Local test runner:
 
+### Full Test Suite (~3-5 seconds)
 ```bash
 cd test
-bash ./run.sh
+./run.sh
 ```
+
+### Fast Mode (~2 seconds)  
+```bash
+cd test
+FAST_MODE=1 ./run.sh
+```
+
+### Development Mode (~1 second)
+```bash
+cd test
+./run-dev.sh  # Reuses existing containers
+```
+
+The test suite covers:
+- Basic HTTP JSON-RPC with health checks
+- HTTPS upstream connections with TLS
+- Inbound TLS termination 
+- Failover behavior and load balancing
+
+### Test Optimizations
+- **Parallel builds** - All containers build simultaneously
+- **Service reuse** - Mock services start once, only HAProxy restarts per scenario  
+- **Fast waits** - Optimized connection polling intervals
+- **Container reuse** - Development mode reuses running containers
 
 - The runner brings up mock JSON-RPC servers and runs haproxy with scenario env files under `test/scenarios/`.
 - CI via GitHub Actions is included at `.github/workflows/ci.yml`.

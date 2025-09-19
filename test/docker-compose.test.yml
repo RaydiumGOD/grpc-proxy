@@ -23,7 +23,7 @@ services:
       - HEALTH=ok
       - CERT_DIR=/etc/certs
     volumes:
-      - ../certs:/etc/certs:ro
+      - ./certs:/etc/certs:ro
     ports:
       - "38899:38899"
   haproxy:
