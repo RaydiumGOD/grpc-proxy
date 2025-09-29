@@ -58,19 +58,23 @@ gen_servers() {
     u=$(echo "$upstream" | tr -d ' ')
     if [ -n "$u" ]; then
       host_part=$(echo "$u" | cut -d: -f1)
+      # Create a valid server name from hostname (replace dots/dashes with underscores)
+      server_name=$(echo "$host_part" | tr '.-' '_')
+      
       if [ "$mode_tag" = "tcp-tls" ]; then
         if [ -n "$alpn_tag" ]; then
-          printf "%sserver srv%s %s ssl verify %s sni str(%s) alpn %s check resolvers docker resolve-prefer ipv4 init-addr last,libc,none rise %s fall %s\n" "$indent" "$i" "$u" "$verify_tag" "$host_part" "$alpn_tag" "$HEALTH_RISE" "$HEALTH_FALL"
+          printf "%sserver %s %s ssl verify %s sni str(%s) alpn %s check resolvers docker resolve-prefer ipv4 init-addr last,libc,none rise %s fall %s\n" "$indent" "$server_name" "$u" "$verify_tag" "$host_part" "$alpn_tag" "$HEALTH_RISE" "$HEALTH_FALL"
         else
-          printf "%sserver srv%s %s ssl verify %s sni str(%s) check resolvers docker resolve-prefer ipv4 init-addr last,libc,none rise %s fall %s\n" "$indent" "$i" "$u" "$verify_tag" "$host_part" "$HEALTH_RISE" "$HEALTH_FALL"
+          printf "%sserver %s %s ssl verify %s sni str(%s) check resolvers docker resolve-prefer ipv4 init-addr last,libc,none rise %s fall %s\n" "$indent" "$server_name" "$u" "$verify_tag" "$host_part" "$HEALTH_RISE" "$HEALTH_FALL"
         fi
       else
-        printf "%sserver srv%s %s check resolvers docker resolve-prefer ipv4 init-addr last,libc,none rise %s fall %s\n" "$indent" "$i" "$u" "$HEALTH_RISE" "$HEALTH_FALL"
+        printf "%sserver %s %s check resolvers docker resolve-prefer ipv4 init-addr last,libc,none rise %s fall %s\n" "$indent" "$server_name" "$u" "$HEALTH_RISE" "$HEALTH_FALL"
       fi
       i=$((i+1))
     fi
   done
 }
+
 
 cat > "$CONFIG_PATH" <<EOF
 global
@@ -150,13 +154,24 @@ $( if [ "$LISTEN_GRPC_TLS_ENABLE" = "true" ]; then
 backend be_rpc_grpc
   mode tcp
   balance ${RPC_GRPC_BALANCE}
-  option tcp-check
-  default-server inter 3s rise ${HEALTH_RISE} fall ${HEALTH_FALL}
-$( if [ "$RPC_GRPC_UPSTREAMS_TLS" = "true" ]; then
-     gen_servers "$RPC_GRPC_UPSTREAMS" "  " "tcp-tls" "$RPC_GRPC_UPSTREAMS_VERIFY" "h2"
-   else
-     gen_servers "$RPC_GRPC_UPSTREAMS" "  " "tcp"
-   fi )
+$( 
+  oldIFS="$IFS"
+  IFS=','
+  set -- $RPC_GRPC_UPSTREAMS
+  IFS="$oldIFS"
+  for upstream in "$@"; do
+    u=$(echo "$upstream" | tr -d ' ')
+    if [ -n "$u" ]; then
+      host_part=$(echo "$u" | cut -d: -f1)
+      server_name=$(echo "$host_part" | tr '.-' '_')
+      if [ "$RPC_GRPC_UPSTREAMS_TLS" = "true" ]; then
+        echo "  server $server_name $u ssl verify $RPC_GRPC_UPSTREAMS_VERIFY sni str($host_part) alpn h2 track be_rpc_http/$server_name"
+      else
+        echo "  server $server_name $u track be_rpc_http/$server_name"
+      fi
+    fi
+  done
+)
 
 listen stats
   bind *:${STATS_PORT}
@@ -174,4 +189,3 @@ cat "$CONFIG_PATH" >&2
 echo "----------------------------------------" >&2
 
 exec haproxy -W -db -f "$CONFIG_PATH"
-
